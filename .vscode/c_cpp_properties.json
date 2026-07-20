@@ -1,0 +1,35 @@
+{
+    "configurations": [
+        {
+            "name": "MSPM0G3507 Keil ArmClang",
+            "compilerPath": "C:/Users/lenovo/AppData/Local/Keil_v5/ARM/ARMCLANG/Bin/ArmClang.exe",
+            "compilerArgs": [
+                "--target=arm-arm-none-eabi",
+                "-mcpu=cortex-m0plus",
+                "-mthumb"
+            ],
+            "includePath": [
+                "${workspaceFolder}/project/code",
+                "${workspaceFolder}/project/code/icm45686",
+                "${workspaceFolder}/project/code/icm45686/vendor",
+                "${workspaceFolder}/project/user/inc",
+                "${workspaceFolder}/libraries/sdk/third_party/CMSIS/Core/Include",
+                "${workspaceFolder}/libraries/sdk",
+                "${workspaceFolder}/libraries/sdk/ti_config",
+                "${workspaceFolder}/libraries/zf_common",
+                "${workspaceFolder}/libraries/zf_components",
+                "${workspaceFolder}/libraries/zf_device",
+                "${workspaceFolder}/libraries/zf_driver"
+            ],
+            "defines": [
+                "__MSPM0G3507__",
+                "CONFIG_MSPM0G350X",
+                "CONFIG_MSPM0G3507"
+            ],
+            "cStandard": "c99",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-arm"
+        }
+    ],
+    "version": 4
+}

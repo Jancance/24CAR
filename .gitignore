@@ -1,0 +1,57 @@
+# Keil MDK build output
+**/Objects/
+**/Listings/
+**/RTE/_Build/
+*.o
+*.d
+*.crf
+*.lst
+*.map
+*.axf
+*.elf
+*.hex
+*.bin
+*.lnp
+*.dep
+*.htm
+*.build_log.htm
+
+# Keil per-user/session files
+*.uvguix.*
+*.uvoptx
+*.scvd
+*.log
+
+# Other build and tool caches
+**/build/
+**/out/
+**/Debug/
+**/Release/
+.cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editor and OS noise
+.idea/
+.vs/
+*.user
+*.suo
+*.tmp
+*.bak
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local scratch material
+tmp/
+temp/
+~$*
+
+# Keys and local secrets (including vendor test keys)
+*.pem
+*.key
+*.pfx
+.env
+.env.*
