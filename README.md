@@ -184,6 +184,31 @@ $ICM,ms=1250,cal=1,still=1,who=233,ax=0.01,ay=-0.02,az=1.00,gx=0.12,gy=-0.08,gz=
 
 ## DRV8870电机接口
 
+第二版扩展板实物电机输出已经确认：
+
+```text
+AO1 / AO2 -> 左电机
+BO1 / BO2 -> 右电机
+```
+
+软件通道对应关系：
+
+```text
+左电机：PA12/AIN1 PWM / PA8/AIN2 PWM
+右电机：PA13/BIN1 PWM / PB18/BIN2 PWM
+```
+
+第二版实物四输入 GPIO 测试确认：
+
+```text
+左轮前进 = AIN1 / PA12，左轮后退 = AIN2 / PA8
+右轮前进 = BIN2 / PB18，右轮后退 = BIN1 / PA13
+```
+
+因此最终方向配置为 `CAR_MOTOR_LEFT_REVERSED=0`、
+`CAR_MOTOR_RIGHT_REVERSED=1`。经过该软件反相后，`motor_set()` 的正值应统一表示
+车轮驱动车辆向前，负值表示向后。
+
 对外接口保持不变：
 
 ```c
@@ -192,19 +217,84 @@ motor_set(left, right);
 motor_stop();
 ```
 
-命令范围为 `-10000~10000`。内部已经从TB6612双方向输入改成DRV8870的PWM加方向输入：
+命令范围为 `-10000~10000`。四个DRV8870输入现在全部使用硬件PWM：
 
-- 正转：方向脚低，普通PWM。
-- 反转：方向脚高，反相PWM。
-- 停止：PWM和方向脚都拉低，进入滑行/低功耗状态。
+- 一个方向：IN1输出PWM，IN2保持低电平。
+- 另一个方向：IN1保持低电平，IN2输出PWM。
+- 停止：IN1、IN2占空比均为0，进入滑行/低功耗状态。
+
+该方式让正反两个方向的PWM关断阶段都处于`0/0`滑行，消除了旧版“一个方向
+驱动/滑行、另一个方向驱动/刹车”造成的启动和调速不对称。
 
 电机上电前仍应先架空车轮，低占空比分别验证左右轮方向。
 
+故障隔离时曾绕过 TIMG0 硬件 PWM，把 `PA12/PA8/PA13/PB18` 全部配置为
+普通 GPIO，并使用 1kHz、30% 占空比的软件脉冲分别测试四条输入网络。每条输入
+持续约 3 秒，阶段之间停车：
+
+```text
+全停 -> LEFT IN1(PA12) -> 停 -> LEFT IN2(PA8) -> 停
+     -> RIGHT IN1(PA13) -> 停 -> RIGHT IN2(PB18) -> 全停
+```
+
+若四个阶段均能驱动对应电机，说明 PCB 和 DRV8870 输入网络正常，故障位于 TIMG0
+硬件 PWM 路径；若 IN1 阶段仍不转而 IN2 能转，则应检查 IN1/BIN1 的 PCB 网络、
+10k 电阻接法及焊接。
+
+实测四个输入都能驱动对应电机，说明 DRV8870、四条 PCB 控制网络和 10k 下拉均
+基本正常。测试中若电机只抖动一下、OLED长时间停在某阶段，需要优先检查电机启动
+造成的 3.3V/5V 电源跌落或主控复位。
+
+第二版实物最终验证结果：
+
+```text
+LEFT IN1  -> 左轮顶部朝车头
+LEFT IN2  -> 左轮顶部朝车尾
+RIGHT IN1 -> 右轮顶部朝车尾
+RIGHT IN2 -> 右轮顶部朝车头
+```
+
+四个输入现均能稳定驱动对应电机，DRV8870 模块、AO/BO 输出、电机接线和控制输入
+验证通过。右轮因镜像安装采用软件反相，保持
+`CAR_MOTOR_LEFT_REVERSED=0`、`CAR_MOTOR_RIGHT_REVERSED=1`。
+
+当前主程序已切回正式 `motor_init()/motor_set()` 接口和四路硬件 PWM，以 50%
+占空比依次验证左前进、左后退、右前进、右后退及双轮同时前进。该测试用于确认
+GPIO 隔离结果已经正确落实到正式电机 API。
+
+20kHz测试时四路输入的万用表平均电压均正确，但电机无动作；1kHz能够正常驱动。
+万用表平均电压不能代替示波器对高低电平幅度和电机电流的检查，因此1kHz以上频率
+暂不作为已验证配置。
+
+自动测试曾在左轮启动后停留于`LEFT FWD`，因此当前电机测试已经改为TIMG12的
+非阻塞毫秒状态机，不再用`system_delay_ms()`等待。PB2绿灯每250ms翻转作为运行
+心跳；若电机启动时OLED状态和绿灯心跳同时停止，应检查3.3V电源跌落、电机噪声、
+复位和地线，而不是继续修改方向宏。
+
+最终实物复测中，改用非阻塞状态机后OLED阶段、PB2心跳及左右电机正反转均恢复
+正常，说明此前停留在`LEFT FWD`的直接原因是阻塞式测试流程没有继续推进，而不是
+DRV8870、PCB控制网络或电机损坏。已验证通过的基准组合为：四输入硬件PWM、1kHz、
+左右50%测试占空比、左轮不反相、右轮反相。
+
+保持其他条件不变提高到5kHz后，实物表现为电机啸叫但不能起转，因此5kHz测试失败，
+当前恢复1kHz。第二版原理图确认R13~R16是四颗独立的10k下拉电阻，不是串联电阻，
+也没有与输入组成RC滤波。当前频率差异更可能来自电机绕组电流建立、DRV8870限流
+和启动转矩条件；在使用示波器、电流探头进一步检查前，不再提高PWM频率。
+
 ## LED与蜂鸣器
 
-- `led_set(0/1, state)` 控制第二版 `PB2/PA31` 状态LED，高电平点亮。
+- 第二版扩展板实物状态灯颜色已经确认：`PB2` 为绿色 LED，`PA31` 为红色 LED。
+- 两颗状态灯均为高电平点亮、低电平熄灭。
+- `led_set(0, state)` 控制 `PB2` 绿色状态灯。
+- `led_set(1, state)` 控制 `PA31` 红色状态灯。
 - `rgb_led_set(0~2, state)` 控制主控板 `PA14/PA15/PA16` RGB，低电平点亮。
 - 蜂鸣器已从PA14移动到PA30，代码暂按高电平有效处理。
+
+独立验证程序按 1 秒间隔循环执行：
+
+```text
+全部熄灭 -> PB2绿灯点亮 -> PA31红灯点亮 -> 红绿灯同时点亮
+```
 
 如果实物PA30蜂鸣器驱动级是低电平有效，只需要修改：
 
@@ -225,6 +315,24 @@ Keil工程：
 ```text
 project/mdk/SeekFree_MSPM0G3507_Device_Library.uvprojx
 ```
+
+## Encoder distance test (2026-07-20)
+
+- Motor encoder: 13 lines per motor revolution; gearbox ratio: 1:28.
+- Current decoder counts phase-A rising edges only, so the expected wheel count is `13 * 28 = 364 counts/revolution`.
+- Wheel diameter is `65 mm`; circumference is about `204.20 mm`; nominal resolution is about `0.561 mm/count`.
+- The current firmware is a passive hand-turn test: motor PWM is not initialized. OLED shows left/right accumulated counts and distance; release the OK key to clear both sides.
+- Validation target: turn one wheel exactly one revolution. The OLED should change by about `364 counts` and `204.2 mm`. Forward motion should be positive; if one side is negative, change only that side's encoder reverse macro.
+- The TIMG12 1 ms tick, millisecond counter, PIT callback, and `Key_Tick()` call now live in `project/code/timer.c`; `board_pins .c` only calls `system_pit_init()` during full initialization.
+- During the first hand-turn test, rotating the left wheel could stall OLED refresh and prevent OK-key clearing, while the right wheel remained smooth. The left PA21 pulse input was therefore moved from per-edge EXTI callbacks to the TIMG6 hardware counter; PA22 remains the direction input. The right encoder remains on PB19 EXTI/PB20 direction for an A/B comparison test.
+- TIMG6 pulse+direction mode was rejected after fast rotation caused counts to cancel or stall: an AB encoder's B phase toggles continuously and is not a static direction output. The left encoder now uses true TIMG8 QEI on PA21/PA22. Its x4 hardware count is divided by four with a retained remainder, so the public distance scale remains `364 counts/revolution` without losing slow partial pulses.
+- Final x4 test configuration: the left encoder uses TIMG8 hardware QEI; the right encoder uses dual-edge interrupts on both PB19/PB20 plus a quadrature transition table that rejects invalid two-bit jumps. Both public counters now retain x4 resolution: `13 * 28 * 4 = 1456 counts/revolution`, approximately `0.140 mm/count` for the 65 mm wheel.
+
+## Eight-channel grayscale test (2026-07-20)
+
+- Channel order is fixed as array indices `gray_values[0]` through `gray_values[7]`, corresponding to grayscale channels 1 through 8.
+- `gray_update()` refreshes the whole array. The normalized value is `1 = black/active`, `0 = white/inactive`, ready for a later weighted-error loop.
+- The OLED test refreshes every 50 ms and shows all eight array elements plus raw and active decimal bit masks. Motor and encoder modules are not initialized in this test firmware.
 
 测试命令：
 

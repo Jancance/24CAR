@@ -1,7 +1,8 @@
 #include "zf_common_headfile.h"
 #include "Key.h"
 #include "board_pins.h"
-uint8_t Num;
+// 由 1 ms 定时中断写入、主循环读取，必须声明为 volatile。
+volatile uint8_t Num;
 
 void Key_Init(void)
 {

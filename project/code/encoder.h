@@ -7,5 +7,7 @@ void car_encoder_init(void);
 void car_encoder_clear(void);
 void car_encoder_get_count(int32 *left_count, int32 *right_count);
 void car_encoder_get_delta(int32 *left_delta, int32 *right_delta);
+float car_encoder_count_to_mm(int32 count);
+void car_encoder_get_distance_mm(float *left_mm, float *right_mm);
 
 #endif

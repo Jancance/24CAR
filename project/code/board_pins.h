@@ -10,6 +10,7 @@
 #include "led.h"
 #include "motor.h"
 #include "gray.h"
+#include "timer.h"
 
 // 第二版扩展板：OLED 使用软件 I2C，SCL/SDA 相对第一版互换。
 #define CAR_OLED_SCL_PIN       (A0)
@@ -47,22 +48,26 @@
 #define CAR_K230_TRIGGER_PIN   (A28)
 #define CAR_K230_READY_PIN     (A29)
 
-// 第二版双 DRV8870。每路使用一个 PWM 输入和一个方向/模式输入。
-#define CAR_MOTOR_LEFT_PWM     (PWM_TIM_G0_CH0_A12)
-#define CAR_MOTOR_RIGHT_PWM    (PWM_TIM_G0_CH1_A13)
-#define CAR_MOTOR_LEFT_DIR_PIN (A8)
-#define CAR_MOTOR_RIGHT_DIR_PIN (B18)
-#define CAR_MOTOR_PWM_FREQ     (20000U)
+// 第二版双 DRV8870：四个输入全部使用硬件 PWM，实现对称的驱动/滑行控制。
+#define CAR_MOTOR_LEFT_IN1_PWM  (PWM_TIM_G0_CH0_A12)
+#define CAR_MOTOR_LEFT_IN2_PWM  (PWM_TIM_A0_CH0_A8)
+#define CAR_MOTOR_RIGHT_IN1_PWM (PWM_TIM_G0_CH1_A13)
+#define CAR_MOTOR_RIGHT_IN2_PWM (PWM_TIM_A1_CH1_B18)
+#define CAR_MOTOR_PWM_FREQ     (1000U)
 #define CAR_MOTOR_MAX_DUTY     (PWM_DUTY_MAX)
 #define CAR_MOTOR_LEFT_REVERSED  (0U)
-#define CAR_MOTOR_RIGHT_REVERSED (0U)
+#define CAR_MOTOR_RIGHT_REVERSED (1U)
 
 // DC motor encoders: count phase-A rising edges and read phase B for direction.
 #define CAR_ENCODER_LEFT_A_PIN   (A21)
 #define CAR_ENCODER_LEFT_B_PIN   (A22)
 #define CAR_ENCODER_RIGHT_A_PIN  (B19)
 #define CAR_ENCODER_RIGHT_B_PIN  (B20)
-#define CAR_ENCODER_PULSES_PER_REV (500U)
+#define CAR_ENCODER_LINES_PER_MOTOR_REV  (13U)
+#define CAR_MOTOR_GEAR_RATIO             (28U)
+#define CAR_ENCODER_QUADRATURE_MULTIPLIER (4U)
+#define CAR_ENCODER_COUNTS_PER_WHEEL_REV  (CAR_ENCODER_LINES_PER_MOTOR_REV * CAR_MOTOR_GEAR_RATIO * CAR_ENCODER_QUADRATURE_MULTIPLIER)
+#define CAR_WHEEL_DIAMETER_MM            (65.0f)
 #define CAR_ENCODER_LEFT_REVERSED  (0U)
 #define CAR_ENCODER_RIGHT_REVERSED (0U)
 
@@ -104,13 +109,7 @@
 #define CAR_SPARE_GPIO1_PIN     (A9)
 #define CAR_SPARE_GPIO2_PIN     (A7)
 
-// TIMG12 is reserved for the 1 ms system tick. TIMG0 belongs to motor PWM.
-#define CAR_SYSTEM_PIT         (PIT_TIM_G12)
-#define CAR_SYSTEM_PIT_IRQn    (TIMG12_INT_IRQn)
-
 void ALL_Init(void);
-void system_pit_init(void);
-uint32 system_get_ms(void);
 
 
 #endif
