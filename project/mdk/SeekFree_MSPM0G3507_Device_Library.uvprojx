@@ -420,16 +420,6 @@
               <FilePath>..\code\buzzer.h</FilePath>
             </File>
             <File>
-              <FileName>debug_uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\code\debug_uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>debug_uart.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\code\debug_uart.h</FilePath>
-            </File>
-            <File>
               <FileName>led.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\code\led.c</FilePath>
@@ -488,6 +478,41 @@
               <FileName>timer.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\code\timer.h</FilePath>
+            </File>
+            <File>
+              <FileName>pid.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\pid.c</FilePath>
+            </File>
+            <File>
+              <FileName>pid.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\code\pid.h</FilePath>
+            </File>
+            <File>
+              <FileName>Serial.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Serial.c</FilePath>
+            </File>
+            <File>
+              <FileName>Serial.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\code\Serial.h</FilePath>
+            </File>
+            <File>
+              <FileName>speed_control.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\speed_control.c</FilePath>
+            </File>
+            <File>
+              <FileName>speed_control.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\code\speed_control.h</FilePath>
+            </File>
+            <File>
+              <FileName>speed_control_config.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\code\speed_control_config.h</FilePath>
             </File>
           </Files>
         </Group>

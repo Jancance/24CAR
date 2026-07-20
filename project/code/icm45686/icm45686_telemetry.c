@@ -1,5 +1,27 @@
 #include "icm45686_telemetry.h"
-#include "debug_uart.h"
+#include "Serial.h"
+
+static void telemetry_write_u32(uint32 value)
+{
+    char text[10];
+    uint8 count = 0U;
+
+    if (value == 0U)
+    {
+        Serial_SendByte('0');
+        return;
+    }
+
+    while ((value > 0U) && (count < sizeof(text)))
+    {
+        text[count++] = (char)('0' + (value % 10U));
+        value /= 10U;
+    }
+    while (count > 0U)
+    {
+        Serial_SendByte((uint8)text[--count]);
+    }
+}
 
 static void telemetry_write_fixed_2(float value)
 {
@@ -10,7 +32,7 @@ static void telemetry_write_fixed_2(float value)
     scaled = (int32)((value >= 0.0f) ? (value * 100.0f + 0.5f) : (value * 100.0f - 0.5f));
     if (scaled < 0)
     {
-        debug_uart_write_string("-");
+        Serial_SendString("-");
         magnitude = (uint32)(-scaled);
     }
     else
@@ -18,19 +40,19 @@ static void telemetry_write_fixed_2(float value)
         magnitude = (uint32)scaled;
     }
 
-    debug_uart_write_u32(magnitude / 100U);
-    debug_uart_write_string(".");
+    telemetry_write_u32(magnitude / 100U);
+    Serial_SendString(".");
     fraction[0] = (char)('0' + ((magnitude / 10U) % 10U));
     fraction[1] = (char)('0' + (magnitude % 10U));
     fraction[2] = '\0';
-    debug_uart_write_string(fraction);
+    Serial_SendString(fraction);
 }
 
 static void telemetry_write_value(const char *name, float value)
 {
-    debug_uart_write_string(",");
-    debug_uart_write_string(name);
-    debug_uart_write_string("=");
+    Serial_SendString(",");
+    Serial_SendString(name);
+    Serial_SendString("=");
     telemetry_write_fixed_2(value);
 }
 
@@ -44,14 +66,14 @@ void icm45686_telemetry_send(uint32 timestamp_ms)
     icm45686_get_attitude(&attitude);
     error = icm45686_get_last_error();
 
-    debug_uart_write_string("$ICM,ms=");
-    debug_uart_write_u32(timestamp_ms);
-    debug_uart_write_string(",cal=");
-    debug_uart_write_u32(attitude.calibrated);
-    debug_uart_write_string(",still=");
-    debug_uart_write_u32(attitude.stationary);
-    debug_uart_write_string(",who=");
-    debug_uart_write_u32(icm45686_get_who_am_i());
+    Serial_SendString("$ICM,ms=");
+    telemetry_write_u32(timestamp_ms);
+    Serial_SendString(",cal=");
+    telemetry_write_u32(attitude.calibrated);
+    Serial_SendString(",still=");
+    telemetry_write_u32(attitude.stationary);
+    Serial_SendString(",who=");
+    telemetry_write_u32(icm45686_get_who_am_i());
     telemetry_write_value("ax", data.accel_g[0]);
     telemetry_write_value("ay", data.accel_g[1]);
     telemetry_write_value("az", data.accel_g[2]);
@@ -62,12 +84,12 @@ void icm45686_telemetry_send(uint32 timestamp_ms)
     telemetry_write_value("pitch", attitude.pitch);
     telemetry_write_value("roll", attitude.roll);
     telemetry_write_value("temp", data.temperature_c);
-    debug_uart_write_string(",err=");
+    Serial_SendString(",err=");
     if (error < 0)
     {
-        debug_uart_write_string("-");
+        Serial_SendString("-");
         error = -error;
     }
-    debug_uart_write_u32((uint32)error);
-    debug_uart_write_string("\r\n");
+    telemetry_write_u32((uint32)error);
+    Serial_SendString("\r\n");
 }

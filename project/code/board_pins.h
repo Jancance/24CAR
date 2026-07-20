@@ -5,12 +5,15 @@
 #include "OLED.h"
 #include "Key.h"
 #include "buzzer.h"
-#include "debug_uart.h"
+#include "Serial.h"
 #include "encoder.h"
 #include "led.h"
 #include "motor.h"
 #include "gray.h"
 #include "timer.h"
+#include "pid.h"
+#include "speed_control_config.h"
+#include "speed_control.h"
 
 // 第二版扩展板：OLED 使用软件 I2C，SCL/SDA 相对第一版互换。
 #define CAR_OLED_SCL_PIN       (A0)
@@ -68,8 +71,8 @@
 #define CAR_ENCODER_QUADRATURE_MULTIPLIER (4U)
 #define CAR_ENCODER_COUNTS_PER_WHEEL_REV  (CAR_ENCODER_LINES_PER_MOTOR_REV * CAR_MOTOR_GEAR_RATIO * CAR_ENCODER_QUADRATURE_MULTIPLIER)
 #define CAR_WHEEL_DIAMETER_MM            (65.0f)
-#define CAR_ENCODER_LEFT_REVERSED  (0U)
-#define CAR_ENCODER_RIGHT_REVERSED (0U)
+#define CAR_ENCODER_LEFT_REVERSED  (1U)
+#define CAR_ENCODER_RIGHT_REVERSED (1U)
 
 // Eight-channel grayscale sensor.
 #define CAR_GRAY_1_PIN          (B6)
@@ -83,9 +86,9 @@
 #define CAR_GRAY_COUNT          (8U)
 #define CAR_GRAY_ACTIVE_LEVEL   (GPIO_LOW)
 
-// 蜂鸣器经第二版扩展板三极管/MOSFET驱动，默认高电平有效。
+// 第二版扩展板实物确认：PA30 经驱动级后为低电平有效。
 #define CAR_BUZZER_PIN          (A30)
-#define CAR_BUZZER_ACTIVE_LEVEL (GPIO_HIGH)
+#define CAR_BUZZER_ACTIVE_LEVEL (GPIO_LOW)
 
 // 主控板 RGB 为低电平点亮；第二版扩展板状态 LED 为高电平点亮。
 #define CAR_RGB_LED1_PIN        (A14)

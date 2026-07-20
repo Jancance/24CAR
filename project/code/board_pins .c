@@ -2,6 +2,7 @@
 
 void ALL_Init(void)
 {
+    clock_init(SYSTEM_CLOCK_80M);
     OLED_Init();
     OLED_Clear();
     led_init();
@@ -11,5 +12,6 @@ void ALL_Init(void)
     car_encoder_init();
     gray_init();
     system_pit_init();
-    debug_uart_init(CAR_DEBUG_UART_BAUD);
+    Serial_Init();
+    speed_control_init();
 }

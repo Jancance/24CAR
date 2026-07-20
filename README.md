@@ -332,7 +332,48 @@ project/mdk/SeekFree_MSPM0G3507_Device_Library.uvprojx
 
 - Channel order is fixed as array indices `gray_values[0]` through `gray_values[7]`, corresponding to grayscale channels 1 through 8.
 - `gray_update()` refreshes the whole array. The normalized value is `1 = black/active`, `0 = white/inactive`, ready for a later weighted-error loop.
-- The OLED test refreshes every 50 ms and shows all eight array elements plus raw and active decimal bit masks. Motor and encoder modules are not initialized in this test firmware.
+- The OLED test refreshes every 50 ms and shows all eight array elements plus raw and active decimal bit masks. Shared board modules are initialized through `ALL_Init()`; the motor initializer leaves all four PWM outputs at zero duty.
+
+## Initialization and include convention
+
+- Application files include only `board_pins.h`; this header is the central include point for board-level module APIs.
+- `ALL_Init()` owns the 80 MHz clock setup and initialization of OLED, LEDs, buzzer, keys, motors, encoders, grayscale inputs, the 1 ms system tick, and debug UART.
+- `main.c` contains only `ALL_Init()` plus task/test logic. Individual module `.c` files still include their own headers so each module remains independently readable.
+- UART3 debug/USB-TTL uses `PA26=TX`, `PA25=RX`, and is configured for `115200, 8N1`.
+
+## Bluetooth transmit/receive test
+
+- The current `main.c` is a UART3 Bluetooth transmit test. Once per second it sends `MSPM0 BT OK, COUNT=n\r\n` at 9600 baud and updates the same send counter on OLED.
+- Transmission runs in the main loop using the 1 ms time base; no UART transmission is performed inside an interrupt.
+- Open the USB-TTL COM port at `115200, 8N1`. Continuously increasing count values prove the complete MCU-to-PC serial path.
+- UART3 RX interrupts only copy bytes into a 64-byte ring buffer. The main loop removes received bytes, updates the OLED RX counter/last-byte display, and echoes each byte to the computer.
+- Disable local echo in the PC terminal. Send a short string; receiving the same string back proves the PC-to-MCU and MCU-to-PC paths both work.
+- OLED only renders received printable ASCII bytes (`0x20` through `0x7E`). CR/LF and other control bytes are still received and echoed but are not sent to the OLED font renderer; the last printable byte is also shown as a decimal value.
+- Second-board hardware feedback confirmed that the PA30 buzzer drive is active-low. `buzzer_init()` now drives PA30 high by default so `ALL_Init()` remains silent.
+
+## PID module
+
+- `project/code/pid.c/.h` provides a reusable position-form PID structure and pointer-based calculation API.
+- The implementation stores target, feedback, P/I/D state, integral/output limits, suppresses the first derivative kick, and accepts the real control period in seconds.
+- Use a separate `pid_t` instance for every control loop and call `pid_calculate(&instance, target, feedback, dt_s)` from a fixed-period module loop.
+
+## Serial compatibility API
+
+- `project/code/Serial.c/.h` adapts the familiar STM32 tutorial API (`Serial_SendByte/Array/String/Number/Printf` and `Serial_GetRxFlag/Data`) to MSPM0 UART3.
+- UART3 initialization, sending, RX interrupt handling and the 64-byte receive ring buffer are all owned by this single module; the duplicate `debug_uart.c/.h` layer has been removed.
+- The receive ring buffer preserves bursts of bytes instead of using the tutorial's single-byte overwrite variable.
+- `Serial_Printf()` uses bounded `vsnprintf()` rather than unbounded `vsprintf()`. The project already owns its low-level `fputc()` implementation, so this module does not define a conflicting retarget function.
+
+## Dual-wheel speed PI
+
+- `pid.c/.h` is the generic position-form PID calculator. `speed_control.c/.h` owns two independent `pid_t` instances, encoder-speed conversion, filtering, target ramps, motor output, and safety shutdown. `speed_control_config.h` contains all verified wheel-specific parameters.
+- The loop runs no faster than every 20 ms, but speed and PID `dt` use the actual elapsed milliseconds. This fixed the false low-speed feedback caused when OLED/UART work stretched a nominal 20 ms cycle.
+- Final left PI: `Kp=20`, `Ki=80`, `Kd=0`, integral-output limit 4000 duty, acceleration 500 mm/s^2. Final right PI: `Kp=20`, `Ki=40`, `Kd=0`, integral-output limit 4500 duty, acceleration 1000 mm/s^2. Final motor output is limited to 8000 duty.
+- Both encoder directions are inverted in configuration so vehicle-forward feedback is positive. Filtered speed above 1200 mm/s or repeated negative forward feedback stops both motors.
+- Integral separation and variable integration are intentionally not part of the generic PID or current speed loop. Independent integral clamps were sufficient after measured load, release, and 600 mm/s tests.
+- The final static straight baseline is left 248.5 and right 251.5 mm/s. Its 10-second verification measured 2469 and 2488 mm, a 19 mm or about 0.77% difference. Future long-distance straight control should apply ICM45686 yaw correction around this base instead of retuning the wheel PI.
+- The formal speed-loop API now includes `speed_control_set_target_trim(base_mm_s, trim_mm_s)`. Its convention is `left_target=base-trim`, `right_target=base+trim`; therefore a positive trim slows the left wheel and speeds up the right wheel. The yaw outer loop can calculate this trim without changing either wheel's PI parameters.
+- The temporary UART/OLED/key harness `dual_speed_test.c/.h` was removed after verification. `main.c` now only initializes the board and repeatedly calls `speed_control_loop()`; power-up remains stopped until a later task module sets targets and calls `speed_control_start()`.
 
 测试命令：
 
