@@ -23,16 +23,16 @@ static void motor_apply(pwm_channel_enum in1_pwm,
     if (command > 0)
     {
         duty = (uint32)command;
-        // IN1=PWM、IN2=0；PWM关断阶段滑行。
-        pwm_set_duty(in2_pwm, 0U);
-        pwm_set_duty(in1_pwm, duty);
+        // 正转在1/0驱动与1/1制动之间切换，关断阶段使用慢衰减。
+        pwm_set_duty(in1_pwm, CAR_MOTOR_MAX_DUTY);
+        pwm_set_duty(in2_pwm, CAR_MOTOR_MAX_DUTY - duty);
     }
     else if (command < 0)
     {
         duty = (uint32)(-command);
-        // IN1=0、IN2=PWM；反方向也使用相同的驱动/滑行方式。
-        pwm_set_duty(in1_pwm, 0U);
-        pwm_set_duty(in2_pwm, duty);
+        // 反转在0/1驱动与1/1制动之间切换，保持与正转相同的慢衰减。
+        pwm_set_duty(in2_pwm, CAR_MOTOR_MAX_DUTY);
+        pwm_set_duty(in1_pwm, CAR_MOTOR_MAX_DUTY - duty);
     }
     else
     {

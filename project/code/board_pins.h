@@ -14,6 +14,9 @@
 #include "pid.h"
 #include "speed_control_config.h"
 #include "speed_control.h"
+#include "speed_tune.h"
+#include "icm45686/icm45686.h"
+#include "position_control.h"
 
 // 第二版扩展板：OLED 使用软件 I2C，SCL/SDA 相对第一版互换。
 #define CAR_OLED_SCL_PIN       (A0)
@@ -56,7 +59,7 @@
 #define CAR_MOTOR_LEFT_IN2_PWM  (PWM_TIM_A0_CH0_A8)
 #define CAR_MOTOR_RIGHT_IN1_PWM (PWM_TIM_G0_CH1_A13)
 #define CAR_MOTOR_RIGHT_IN2_PWM (PWM_TIM_A1_CH1_B18)
-#define CAR_MOTOR_PWM_FREQ     (1000U)
+#define CAR_MOTOR_PWM_FREQ     (20000U)
 #define CAR_MOTOR_MAX_DUTY     (PWM_DUTY_MAX)
 #define CAR_MOTOR_LEFT_REVERSED  (0U)
 #define CAR_MOTOR_RIGHT_REVERSED (1U)

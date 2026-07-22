@@ -13,6 +13,7 @@ typedef struct
 typedef struct
 {
     float yaw;
+    float yaw_rate_dps;
     float pitch;
     float roll;
     float quaternion[4];

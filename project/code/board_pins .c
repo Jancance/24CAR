@@ -14,4 +14,6 @@ void ALL_Init(void)
     system_pit_init();
     Serial_Init();
     speed_control_init();
+    (void)icm45686_init();
+    position_control_init();
 }

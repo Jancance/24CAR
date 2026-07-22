@@ -29,6 +29,7 @@ static uint16 calibration_count;
 static uint8 calibration_complete;
 static float yaw_zero_deg;
 static float yaw_absolute_deg;
+static float yaw_rate_dps;
 static float stationary_time_s;
 
 static float icm45686_wrap_angle(float angle)
@@ -98,6 +99,7 @@ void icm45686_attitude_init(float sample_hz)
     sample_period_s = (sample_hz > 0.0f) ? (1.0f / sample_hz) : 0.005f;
     yaw_zero_deg = 0.0f;
     yaw_absolute_deg = 0.0f;
+    yaw_rate_dps = 0.0f;
     stationary_time_s = 0.0f;
     icm45686_attitude_restart_calibration();
 }
@@ -164,6 +166,7 @@ void icm45686_attitude_update(const icm45686_data_t *data, float elapsed_s)
     gx_dps = data->gyro_dps[0] - gyro_bias_dps[0];
     gy_dps = data->gyro_dps[1] - gyro_bias_dps[1];
     gz_dps = data->gyro_dps[2] - gyro_bias_dps[2];
+    yaw_rate_dps = calibration_complete ? gz_dps : 0.0f;
 
     norm = sqrtf(ax * ax + ay * ay + az * az);
     if (calibration_complete &&
@@ -184,6 +187,7 @@ void icm45686_attitude_update(const icm45686_data_t *data, float elapsed_s)
             gx_dps = data->gyro_dps[0] - gyro_bias_dps[0];
             gy_dps = data->gyro_dps[1] - gyro_bias_dps[1];
             gz_dps = 0.0f;
+            yaw_rate_dps = 0.0f;
         }
     }
     else
@@ -277,6 +281,7 @@ void icm45686_attitude_get(icm45686_attitude_t *attitude)
     }
 
     attitude->yaw = icm45686_wrap_angle(yaw_absolute_deg - yaw_zero_deg);
+    attitude->yaw_rate_dps = yaw_rate_dps;
     attitude->pitch = asinf(pitch_sin) * ICM45686_RAD_TO_DEG;
     attitude->roll = atan2f(2.0f * (q0 * q1 + q2 * q3),
                             1.0f - 2.0f * (q1 * q1 + q2 * q2)) *
