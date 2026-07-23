@@ -525,14 +525,14 @@
               <FilePath>..\code\position_control.h</FilePath>
             </File>
             <File>
-              <FileName>speed_tune.c</FileName>
+              <FileName>bluetooth_link.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\code\speed_tune.c</FilePath>
+              <FilePath>..\code\bluetooth_link.c</FilePath>
             </File>
             <File>
-              <FileName>speed_tune.h</FileName>
+              <FileName>bluetooth_link.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\code\speed_tune.h</FilePath>
+              <FilePath>..\code\bluetooth_link.h</FilePath>
             </File>
           </Files>
         </Group>

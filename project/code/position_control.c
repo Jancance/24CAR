@@ -5,7 +5,8 @@
 
 #define POSITION_CONTROL_PERIOD_MS          (20U)
 #define POSITION_CONTROL_DISPLAY_MS         (100U)
-#define POSITION_CONTROL_MAX_TRIM_MM_S      (60.0f)
+#define POSITION_CONTROL_MAX_TRIM_MM_S      (30.0f)
+#define POSITION_CONTROL_STARTUP_TRIM_MM_S  (10.0f)
 #define POSITION_CONTROL_KP_MIN             (0.0f)
 #define POSITION_CONTROL_KP_MAX             (20.0f)
 #define POSITION_CONTROL_KD_MIN             (0.0f)
@@ -13,6 +14,8 @@
 #define POSITION_CONTROL_SPEED_MIN_MM_S     (50.0f)
 #define POSITION_CONTROL_SPEED_MAX_MM_S     (400.0f)
 #define POSITION_CONTROL_KEY_DOUBLE_MS      (350U)
+#define POSITION_CONTROL_STARTUP_HOLD_MS    (500U)
+#define POSITION_CONTROL_STARTUP_SPEED_MM_S (120.0f)
 
 typedef enum
 {
@@ -26,6 +29,7 @@ static position_control_edit_t edit_parameter;
 static float tune_base_speed_mm_s;
 static uint32 control_ms;
 static uint32 display_ms;
+static uint32 startup_ms;
 static uint8 pending_adjust_key;
 static uint32 pending_adjust_ms;
 
@@ -124,6 +128,26 @@ static void position_control_adjust(float parameter_delta, float speed_delta)
     }
 }
 
+static float position_control_startup_speed(uint32 now_ms,
+                                            float target_speed_mm_s)
+{
+    if ((uint32)(now_ms - startup_ms) < POSITION_CONTROL_STARTUP_HOLD_MS)
+    {
+        return (target_speed_mm_s < POSITION_CONTROL_STARTUP_SPEED_MM_S) ?
+               target_speed_mm_s : POSITION_CONTROL_STARTUP_SPEED_MM_S;
+    }
+    return target_speed_mm_s;
+}
+
+static float position_control_trim_limit(uint32 now_ms)
+{
+    if ((uint32)(now_ms - startup_ms) < POSITION_CONTROL_STARTUP_HOLD_MS)
+    {
+        return POSITION_CONTROL_STARTUP_TRIM_MM_S;
+    }
+    return POSITION_CONTROL_MAX_TRIM_MM_S;
+}
+
 static void position_control_select_next(void)
 {
     if (edit_parameter == POSITION_CONTROL_EDIT_KP)
@@ -179,6 +203,7 @@ void position_control_init(void)
     pending_adjust_key = 0U;
     control_ms = system_get_ms();
     display_ms = control_ms;
+    startup_ms = control_ms;
     pending_adjust_ms = control_ms;
     OLED_Clear();
     position_control_update_oled();
@@ -202,7 +227,10 @@ uint8 position_control_start(float base_speed_mm_s)
     control_state.error = POSITION_CONTROL_ERROR_NONE;
     control_state.active = 1U;
     control_ms = system_get_ms();
-    speed_control_set_target_trim(base_speed_mm_s, 0.0f);
+    startup_ms = control_ms;
+    speed_control_set_target_trim(position_control_startup_speed(
+                                      control_ms, base_speed_mm_s),
+                                  0.0f);
     speed_control_start();
     return 1U;
 }
@@ -212,6 +240,14 @@ void position_control_stop(void)
     control_state.active = 0U;
     control_state.trim_mm_s = 0.0f;
     speed_control_stop();
+}
+
+void position_control_set_gains(float kp, float kd)
+{
+    control_state.kp = position_control_clamp(
+        kp, POSITION_CONTROL_KP_MIN, POSITION_CONTROL_KP_MAX);
+    control_state.kd = position_control_clamp(
+        kd, POSITION_CONTROL_KD_MIN, POSITION_CONTROL_KD_MAX);
 }
 
 void position_control_get_state(position_control_state_t *state)
@@ -297,8 +333,12 @@ void position_control_loop(void)
     trim = control_state.kp * control_state.yaw_error_deg
          - control_state.kd * control_state.yaw_rate_dps;
     trim *= CAR_YAW_POSITION_TRIM_SIGN;
-    control_state.trim_mm_s = position_control_clamp(
-        trim, -POSITION_CONTROL_MAX_TRIM_MM_S, POSITION_CONTROL_MAX_TRIM_MM_S);
-    speed_control_set_target_trim(control_state.base_speed_mm_s,
+    {
+        float trim_limit = position_control_trim_limit(now_ms);
+        control_state.trim_mm_s = position_control_clamp(
+            trim, -trim_limit, trim_limit);
+    }
+    speed_control_set_target_trim(position_control_startup_speed(
+                                      now_ms, control_state.base_speed_mm_s),
                                   control_state.trim_mm_s);
 }

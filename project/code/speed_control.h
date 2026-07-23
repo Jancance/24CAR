@@ -33,6 +33,10 @@ void speed_control_set_target(float left_mm_s, float right_mm_s);
 /* Positive trim slows the left wheel and speeds up the right wheel. */
 void speed_control_set_target_trim(float base_mm_s, float trim_mm_s);
 void speed_control_set_acceleration(float left_mm_s2, float right_mm_s2);
+void speed_control_set_left_gains(float kp, float ki, float kd);
+void speed_control_set_right_gains(float kp, float ki, float kd);
+void speed_control_get_gains(float *left_kp, float *left_ki, float *left_kd,
+                             float *right_kp, float *right_ki, float *right_kd);
 void speed_control_get_state(speed_control_state_t *state);
 void speed_control_loop(void);
 

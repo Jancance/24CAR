@@ -35,7 +35,7 @@ ICM45686   PB9  SPI1 SCLK
 UART0      PB0 TX / PB1 RX，ZDT1
 UART1      PB4 TX / PB5 RX，ZDT2
 UART2      PB15 TX / PB16 RX，CanMV K230
-UART3      PA26 TX / PA25 RX，USB-TTL调试
+UART3      PA26 TX / PA25 RX，蓝牙或USB-TTL调试（同一时刻只接一个）
 
 DRV8870    PA12 左PWM / PA8 左方向
             PA13 右PWM / PB18右方向
@@ -162,7 +162,7 @@ CODE:错误码绝对值
 
 ## UART3连续遥测
 
-UART3通过 `PA26 TX / PA25 RX / GND` 连接USB-TTL，参数为 `115200, 8N1, 无流控`。程序每100ms输出一帧：
+UART3通过 `PA26 TX / PA25 RX / GND` 连接蓝牙模块或USB-TTL，当前参数为 `115200, 8N1, 无流控`。蓝牙模块的 `TX -> PA25`、`RX -> PA26`，并与小车共地。速度环每20ms采样，蓝牙CSV每100ms输出一帧。
 
 ```text
 $ICM,ms=1250,cal=1,still=1,who=233,ax=0.01,ay=-0.02,az=1.00,gx=0.12,gy=-0.08,gz=0.03,yaw=2.35,pitch=-0.40,roll=0.62,temp=27.10,err=0
@@ -332,16 +332,21 @@ project/mdk/SeekFree_MSPM0G3507_Device_Library.uvprojx
 - Application files include only `board_pins.h`; this header is the central include point for board-level module APIs.
 - `ALL_Init()` owns the 80 MHz clock setup and initialization of OLED, LEDs, buzzer, keys, motors, encoders, grayscale inputs, the 1 ms system tick, and debug UART.
 - `main.c` contains only `ALL_Init()` plus task/test logic. Individual module `.c` files still include their own headers so each module remains independently readable.
-- UART3 debug/USB-TTL uses `PA26=TX`, `PA25=RX`, and is configured for `115200, 8N1`.
+- UART3 debug/Bluetooth uses `PA26=TX`, `PA25=RX`, and is configured for `115200, 8N1`.
 
 ## Bluetooth transmit/receive test
 
-- The current `main.c` is a UART3 Bluetooth transmit test. Once per second it sends `MSPM0 BT OK, COUNT=n\r\n` at 9600 baud and updates the same send counter on OLED.
-- Transmission runs in the main loop using the 1 ms time base; no UART transmission is performed inside an interrupt.
-- Open the USB-TTL COM port at `115200, 8N1`. Continuously increasing count values prove the complete MCU-to-PC serial path.
-- UART3 RX interrupts only copy bytes into a 64-byte ring buffer. The main loop removes received bytes, updates the OLED RX counter/last-byte display, and echoes each byte to the computer.
-- Disable local echo in the PC terminal. Send a short string; receiving the same string back proves the PC-to-MCU and MCU-to-PC paths both work.
-- OLED only renders received printable ASCII bytes (`0x20` through `0x7E`). CR/LF and other control bytes are still received and echoed but are not sent to the OLED font renderer; the last printable byte is also shown as a decimal value.
+- Current main program runs the speed PI inner loop and ICM45686 yaw outer loop. UART3 runs `bluetooth_link.c/.h` at `115200, 8N1`.
+- On reset, the module sends `BT READY,UART3,115200,8N1`.
+- Send `PING` followed by CR/LF from the PC Bluetooth terminal; the MSPM0 replies `PONG`.
+- Send `INFO` followed by CR/LF; the MSPM0 replies `BT,UART3,115200,8N1`.
+- Send `GET PID` to read the current RAM gains.
+- Send `DIST` after a test to read the accumulated left/right encoder distance and their difference. Each `START` clears the encoder distance first.
+- Send `SPEED GET` to read both wheel targets, setpoints, filtered/raw speeds, and `PWM` to read both motor duties.
+- Current main program is the yaw-outer-loop controller. Send `YAW P value` and `YAW D value` while stopped, `YAW START speed` after ICM calibration, `YAW GET` to read heading/rate/trim, and `YAW STOP` to stop. The yaw loop owns the speed target; do not use `START` while this mode is active.
+- While stopped, send `SET LKP 20`, `SET LKI 80`, `SET RKP 20`, or `SET RKI 40` to change one gain. `SET LKD` and `SET RKD` are also supported.
+- Send `STOP` for an early stop. Gain changes are rejected while running. The controller applies a 500 ms, 120 mm/s startup buffer and limits yaw trim to +/-10 mm/s during that buffer, then restores the +/-30 mm/s normal trim limit.
+- UART3 RX interrupts only copy bytes into a 64-byte ring buffer. Command parsing and all replies run in the main loop.
 - Second-board hardware feedback confirmed that the PA30 buzzer drive is active-low. `buzzer_init()` now drives PA30 high by default so `ALL_Init()` remains silent.
 
 ## PID module
@@ -361,7 +366,7 @@ project/mdk/SeekFree_MSPM0G3507_Device_Library.uvprojx
 
 - `pid.c/.h` is the generic position-form PID calculator. `speed_control.c/.h` owns two independent `pid_t` instances, encoder-speed conversion, filtering, target ramps, motor output, and safety shutdown. `speed_control_config.h` contains all verified wheel-specific parameters.
 - The loop runs no faster than every 20 ms, but speed and PID `dt` use the actual elapsed milliseconds. This fixed the false low-speed feedback caused when OLED/UART work stretched a nominal 20 ms cycle.
-- Final left PI: `Kp=20`, `Ki=80`, `Kd=0`, integral-output limit 4000 duty, acceleration 500 mm/s^2. Final right PI: `Kp=20`, `Ki=40`, `Kd=0`, integral-output limit 4500 duty, acceleration 1000 mm/s^2. Final motor output is limited to 8000 duty.
+- Final left PI: `Kp=20`, `Ki=80`, `Kd=0`, integral-output limit 4000 duty. Current right PI: `Kp=20`, `Ki=50`, `Kd=0`, integral-output limit 4500 duty. Both motor outputs are limited to 8000 duty; the right Ki=50 candidate was confirmed by Bluetooth 200/300 mm/s and light-load recovery tests and still needs ground-distance validation.
 - Both encoder directions are inverted in configuration so vehicle-forward feedback is positive. Filtered speed above 1200 mm/s or repeated negative forward feedback stops both motors.
 - Integral separation and variable integration are intentionally not part of the generic PID or current speed loop. Independent integral clamps were sufficient after measured load, release, and 600 mm/s tests.
 - The final static straight baseline is left 248.5 and right 251.5 mm/s. Its 10-second verification measured 2469 and 2488 mm, a 19 mm or about 0.77% difference. Future long-distance straight control should apply ICM45686 yaw correction around this base instead of retuning the wheel PI.

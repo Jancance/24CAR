@@ -20,6 +20,15 @@ static uint8 right_reverse_count;
 static float left_accel_mm_s2;
 static float right_accel_mm_s2;
 
+static float speed_control_clamp_gain(float value, float maximum)
+{
+    if (value < 0.0f)
+    {
+        return 0.0f;
+    }
+    return (value > maximum) ? maximum : value;
+}
+
 static float speed_control_clamp(float value, float minimum, float maximum)
 {
     if (value < minimum)
@@ -152,6 +161,45 @@ void speed_control_set_acceleration(float left_mm_s2, float right_mm_s2)
     right_accel_mm_s2 = speed_control_clamp(right_mm_s2,
                                             SPEED_CONTROL_MIN_ACCEL_MM_S2,
                                             SPEED_CONTROL_MAX_ACCEL_MM_S2);
+}
+
+void speed_control_set_left_gains(float kp, float ki, float kd)
+{
+    float integral_limit;
+
+    kp = speed_control_clamp_gain(kp, 100.0f);
+    ki = speed_control_clamp_gain(ki, 300.0f);
+    kd = speed_control_clamp_gain(kd, 20.0f);
+    pid_set_gains(&left_pid, kp, ki, kd);
+    integral_limit = speed_control_integral_limit(
+        ki, CAR_LEFT_SPEED_I_MAX_DUTY);
+    pid_set_limits(&left_pid, 0.0f, SPEED_CONTROL_MAX_DUTY,
+                   -integral_limit, integral_limit);
+}
+
+void speed_control_set_right_gains(float kp, float ki, float kd)
+{
+    float integral_limit;
+
+    kp = speed_control_clamp_gain(kp, 100.0f);
+    ki = speed_control_clamp_gain(ki, 300.0f);
+    kd = speed_control_clamp_gain(kd, 20.0f);
+    pid_set_gains(&right_pid, kp, ki, kd);
+    integral_limit = speed_control_integral_limit(
+        ki, CAR_RIGHT_SPEED_I_MAX_DUTY);
+    pid_set_limits(&right_pid, 0.0f, SPEED_CONTROL_MAX_DUTY,
+                   -integral_limit, integral_limit);
+}
+
+void speed_control_get_gains(float *left_kp, float *left_ki, float *left_kd,
+                             float *right_kp, float *right_ki, float *right_kd)
+{
+    if (left_kp != NULL)  { *left_kp = left_pid.kp; }
+    if (left_ki != NULL)  { *left_ki = left_pid.ki; }
+    if (left_kd != NULL)  { *left_kd = left_pid.kd; }
+    if (right_kp != NULL) { *right_kp = right_pid.kp; }
+    if (right_ki != NULL) { *right_ki = right_pid.ki; }
+    if (right_kd != NULL) { *right_kd = right_pid.kd; }
 }
 
 void speed_control_get_state(speed_control_state_t *state)
