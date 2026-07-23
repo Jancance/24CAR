@@ -71,6 +71,8 @@ static void speed_control_stop_with_error(speed_control_error_t error)
     control_state.running = 0U;
     control_state.left_duty = 0;
     control_state.right_duty = 0;
+    control_state.left_target_mm_s = 0.0f;
+    control_state.right_target_mm_s = 0.0f;
     control_state.left_setpoint_mm_s = 0.0f;
     control_state.right_setpoint_mm_s = 0.0f;
     control_state.error = error;

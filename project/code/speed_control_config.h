@@ -20,8 +20,8 @@
 #define CAR_STRAIGHT_RIGHT_BASE_MM_S (251.5f)
 
 /* Yaw outer loop: trim = Kp * yaw_error - Kd * calibrated yaw rate. */
-#define CAR_YAW_POSITION_KP       (3.3f)
-#define CAR_YAW_POSITION_KD       (1.18f)
+#define CAR_YAW_POSITION_KP       (1.5f)
+#define CAR_YAW_POSITION_KD       (0.15f)
 #define CAR_YAW_POSITION_TRIM_SIGN (1.0f)
 #define CAR_YAW_POSITION_START_SPEED_MM_S (100.0f)
 
