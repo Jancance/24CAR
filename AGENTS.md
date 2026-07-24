@@ -191,6 +191,15 @@ python -m unittest discover -s tests
 & 'C:\Users\lenovo\AppData\Local\Keil_v5\UV4\UV4.exe' -r 'C:\Users\lenovo\Desktop\24Car\SeekFree_MSPM0G3507_Opensource_Library\project\mdk\SeekFree_MSPM0G3507_Device_Library.uvprojx' -j0
 ```
 
+## 问与分析判断准则
+
+- 回答前先检查问题是否存在逻辑错误、逻辑缺陷、概念混淆、信息缺失或未经核实的假设；发现问题时直接指出，不基于有缺陷的前提继续推导。
+- 不自动认同用户观点，也不为了迎合而附和；即使表达有说服力，也要独立判断其合理性。
+- 明确区分已核实事实、基于现有信息的合理推测、主观判断和暂时无法核实的信息，不把它们混为一谈。
+- 涉及数字、日期、人物、引用、研究结论、案例或具体事件时，尽可能核实来源；无法确认时明确说明不确定性，不编造或补全成事实。
+- 不同意用户判断时，清楚指出不同意的部分，并说明原因，提供关键依据、反例、潜在风险或更合理的替代解释。
+- 区分证据不足与结论错误；不能因为暂时缺乏证据就判定观点错误，也不能把可能成立描述成已经证实。
+
 - 权威构建结果读取：`project/mdk/Objects/SeekFree_MSPM0G3507_Device_Library.build_log.htm`。
 - 最近一次统一初始化结构验证结果：21 项测试通过，Keil `0 Error(s), 0 Warning(s)`。
 - 嵌入式功能不能只以“编译通过”为完成标准；还要结合 OLED/UART 状态、引脚电压和实物运动结果验证。

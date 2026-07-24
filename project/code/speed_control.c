@@ -71,6 +71,7 @@ static void speed_control_stop_with_error(speed_control_error_t error)
     control_state.running = 0U;
     control_state.left_duty = 0;
     control_state.right_duty = 0;
+    control_state.loop_dt_ms = 0U;
     control_state.left_target_mm_s = 0.0f;
     control_state.right_target_mm_s = 0.0f;
     control_state.left_setpoint_mm_s = 0.0f;
@@ -111,6 +112,7 @@ void speed_control_init(void)
     control_state.left_duty = 0;
     control_state.right_duty = 0;
     control_state.running = 0U;
+    control_state.ramp_enabled = 1U;
     control_state.error = SPEED_CONTROL_ERROR_NONE;
     left_reverse_count = 0U;
     right_reverse_count = 0U;
@@ -163,6 +165,11 @@ void speed_control_set_acceleration(float left_mm_s2, float right_mm_s2)
     right_accel_mm_s2 = speed_control_clamp(right_mm_s2,
                                             SPEED_CONTROL_MIN_ACCEL_MM_S2,
                                             SPEED_CONTROL_MAX_ACCEL_MM_S2);
+}
+
+void speed_control_set_ramp_enabled(uint8 enabled)
+{
+    control_state.ramp_enabled = enabled ? 1U : 0U;
 }
 
 void speed_control_set_left_gains(float kp, float ki, float kd)
@@ -230,6 +237,7 @@ void speed_control_loop(void)
         return;
     }
     control_ms = now;
+    control_state.loop_dt_ms = elapsed_ms;
     dt_s = (float)elapsed_ms / 1000.0f;
     left_setpoint_step = left_accel_mm_s2 * dt_s;
     right_setpoint_step = right_accel_mm_s2 * dt_s;
@@ -250,14 +258,22 @@ void speed_control_loop(void)
         return;
     }
 
-    control_state.left_setpoint_mm_s =
-        speed_control_ramp(control_state.left_setpoint_mm_s,
-                           control_state.left_target_mm_s,
-                           left_setpoint_step);
-    control_state.right_setpoint_mm_s =
-        speed_control_ramp(control_state.right_setpoint_mm_s,
-                           control_state.right_target_mm_s,
-                           right_setpoint_step);
+    if (control_state.ramp_enabled)
+    {
+        control_state.left_setpoint_mm_s =
+            speed_control_ramp(control_state.left_setpoint_mm_s,
+                               control_state.left_target_mm_s,
+                               left_setpoint_step);
+        control_state.right_setpoint_mm_s =
+            speed_control_ramp(control_state.right_setpoint_mm_s,
+                               control_state.right_target_mm_s,
+                               right_setpoint_step);
+    }
+    else
+    {
+        control_state.left_setpoint_mm_s = control_state.left_target_mm_s;
+        control_state.right_setpoint_mm_s = control_state.right_target_mm_s;
+    }
 
     left_reverse_count = (control_state.left_raw_mm_s < -20.0f)
                        ? (uint8)(left_reverse_count + 1U) : 0U;

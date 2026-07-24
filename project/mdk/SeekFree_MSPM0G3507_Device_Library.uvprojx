@@ -525,9 +525,34 @@
               <FilePath>..\code\position_control.h</FilePath>
             </File>
             <File>
+              <FileName>line_follow.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\line_follow.c</FilePath>
+            </File>
+            <File>
+              <FileName>line_follow.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\code\line_follow.h</FilePath>
+            </File>
+            <File>
+              <FileName>task_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\task_manager.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_manager.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\code\task_manager.h</FilePath>
+            </File>
+            <File>
               <FileName>bluetooth_link.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\code\bluetooth_link.c</FilePath>
+            </File>
+            <File>
+              <FileName>wheeltec_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\wheeltec_app.c</FilePath>
             </File>
             <File>
               <FileName>bluetooth_link.h</FileName>

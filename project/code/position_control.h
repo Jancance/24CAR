@@ -28,7 +28,6 @@ void position_control_init(void);
 void position_control_loop(void);
 uint8 position_control_start(float base_speed_mm_s);
 void position_control_stop(void);
-void position_control_set_gains(float kp, float kd);
 void position_control_get_state(position_control_state_t *state);
 
 #endif

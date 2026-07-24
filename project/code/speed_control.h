@@ -22,7 +22,9 @@ typedef struct
     float right_speed_mm_s;
     int16 left_duty;
     int16 right_duty;
+    uint32 loop_dt_ms;
     uint8 running;
+    uint8 ramp_enabled;
     speed_control_error_t error;
 } speed_control_state_t;
 
@@ -33,6 +35,7 @@ void speed_control_set_target(float left_mm_s, float right_mm_s);
 /* Positive trim slows the left wheel and speeds up the right wheel. */
 void speed_control_set_target_trim(float base_mm_s, float trim_mm_s);
 void speed_control_set_acceleration(float left_mm_s2, float right_mm_s2);
+void speed_control_set_ramp_enabled(uint8 enabled);
 void speed_control_set_left_gains(float kp, float ki, float kd);
 void speed_control_set_right_gains(float kp, float ki, float kd);
 void speed_control_get_gains(float *left_kp, float *left_ki, float *left_kd,

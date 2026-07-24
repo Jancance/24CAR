@@ -17,6 +17,8 @@
 #include "bluetooth_link.h"
 #include "icm45686/icm45686.h"
 #include "position_control.h"
+#include "line_follow.h"
+#include "task_manager.h"
 
 // 第二版扩展板：OLED 使用软件 I2C，SCL/SDA 相对第一版互换。
 #define CAR_OLED_SCL_PIN       (A0)
@@ -87,7 +89,7 @@
 #define CAR_GRAY_7_PIN          (A17)
 #define CAR_GRAY_8_PIN          (B22)
 #define CAR_GRAY_COUNT          (8U)
-#define CAR_GRAY_ACTIVE_LEVEL   (GPIO_LOW)
+#define CAR_GRAY_ACTIVE_LEVEL   (GPIO_HIGH)
 
 // 第二版扩展板实物确认：PA30 经驱动级后为低电平有效。
 #define CAR_BUZZER_PIN          (A30)

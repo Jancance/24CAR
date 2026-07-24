@@ -16,4 +16,5 @@ void ALL_Init(void)
     speed_control_init();
     (void)icm45686_init();
     position_control_init();
+    line_follow_init();
 }
